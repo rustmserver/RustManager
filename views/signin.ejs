@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,viewport-fit=cover">
+<title>サインイン - RustManager</title>
+<script src="/javascripts/jquery/jquery.min.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="/stylesheets/vui-main.css">
+<link rel="stylesheet" href="/stylesheets/small.css" media="screen and (max-width:874px)">
+<link rel="stylesheet" href="/stylesheets/medium.css" media="screen and (min-width:875px) and (max-width:1349px)">
+<link rel="stylesheet" href="/stylesheets/wide.css" media="screen and (min-width:1350px)">
+</head>
+<body>
+<div class="vui-signin-main">
+<div class="vui-signin">
+<img src="/images/logo.jpg"style="width:100px;height:100px;padding:0px;margin:0px;margin-bottom:10px;">
+<div class="vui-input-group" style="width:20em;">
+<span class="label">サーバーのIPアドレス</span>
+<div class="vui-input fluid">
+<input type="text" id="ip">
+</div>
+</div>
+<div class="vui-input-group" style="width:20em;">
+<span class="label">RCONポート番号</span>
+<div class="vui-input fluid">
+<input type="number" id="port">
+</div>
+</div>
+<div class="vui-input-group" style="width:20em;">
+<span class="label">RCONパスワード</span>
+<div class="vui-input fluid">
+<input type="password" id="passwd">
+</div>
+</div>
+<button type="button" value="" class="vui-button submit mt">
+<span class="material-icons">login</span>
+Rustサーバーに接続
+</button>
+</div>
+</div>
+<script src="/javascripts/webrcon.js"></script>
+<script src="/store/store.legacy.min.js"></script>
+<script>
+if(store.get("server") !== undefined && store.get("server").ip !== "" && store.get("server").port !== "" && store.get("server").passwd !== ""){
+    $("#ip").val(store.get("server").ip)
+    $("#port").val(store.get("server").port)
+    $("#passwd").val(store.get("server").passwd)
+}
+$(".vui-button.submit").click(function(){
+var WebRcon = dcodeIO.WebRcon;
+var rcon = new WebRcon($("#ip").val(), $("#port").val())
+rcon.on('connect', function() {
+store.set('server',{ip:$("#ip").val(),port:$("#port").val(),passwd:$("#passwd").val()})
+location.href = "/status"
+})
+try{
+rcon.connect($("#passwd").val())
+}catch{
+location.reload()
+}
+})
+</script>
+</body>
+</html>

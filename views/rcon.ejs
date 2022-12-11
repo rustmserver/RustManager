@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,viewport-fit=cover">
+<title>RCON - RustManager</title>
+<script src="/javascripts/jquery/jquery.min.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="/stylesheets/vui-main.css">
+<link rel="stylesheet" href="/stylesheets/small.css" media="screen and (max-width:874px)">
+<link rel="stylesheet" href="/stylesheets/medium.css" media="screen and (min-width:875px) and (max-width:1349px)">
+<link rel="stylesheet" href="/stylesheets/wide.css" media="screen and (min-width:1350px)">
+<script src="/sweetalert2/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="/sweetalert2/sweetalert2.min.css">
+</head>
+<body>
+<%- include("./commons/header",{path:"rcon",title:'RCON'}) %>
+<%- include("./commons/sidebar",{path:"rcon"}) %>
+<div class="vui-main" style="height:calc(100% - 55px);">
+<div class="rcon-cli" style="width:100%;height:calc(100% - 50px);background-color:#282C34;color:#fff;padding:20px;line-height:1.5em;margin:0px;box-sizing:border-box;overflow-y:auto;"></div>
+<div class="vui-servers">
+<div class="server" style="width:100%;height:50px;background-color:rgb(18, 46, 30);padding:10px;margin:0px;box-sizing:border-box;">
+<input type="text" id="command" style="background-color:transparent;color:#fff;width:100%;height:100%;padding:5px;margin:0px;box-sizing:border-box;border:0;outline:none;" placeholder="コマンド">
+</div>
+</p>
+</div>
+</div>
+</div>
+<%- include('./commons/footer') %>
+<script src="/javascripts/webrcon.js"></script>
+<script src="/store/store.legacy.min.js"></script>
+<script>
+if(store.get("server") !== undefined && store.get("server").ip !== "" && store.get("server").port !== "" && store.get("server").passwd !== ""){
+var WebRcon = dcodeIO.WebRcon;
+var rcon = new WebRcon(store.get("server").ip, store.get("server").port)
+rcon.on('connect', function() {
+$(".rcon-cli").prepend('サーバーに接続しました<br/>');
+})
+rcon.on('disconnect', function() {
+$(".rcon-cli").prepend('サーバーから切断しました<br/>');
+})
+rcon.on('message', function(msg) {
+if(msg.message != ""){
+$(".rcon-cli").append(msg.message.replace(/\r?\n/g, '<br>')+'<br/>');
+$(".rcon-cli").scrollTop($(".rcon-cli").get(0).scrollHeight);
+}
+})
+rcon.on('error', function(err) {
+})
+// Connect by providing the server's rcon.password:
+rcon.connect(store.get("server").passwd)
+$('#command').keypress(function(e){
+if(e.which == 13) {
+rcon.run($("#command").val(),0)
+$("#command").val("");
+}
+})
+var api = "https://api.battlemetrics.com/servers/16347278";
+$.getJSON(api,function(data){
+$("#server_name").text(data.data.attributes.name)
+$("#server_ip").text(data.data.attributes.ip)
+$("#server_port").text(data.data.attributes.port)
+$("#server_status").text(data.data.attributes.status)
+$("#server_player_max").text(data.data.attributes.maxPlayers)
+$("#server_player_now").text(data.data.attributes.players)
+$("#server_fps").text(data.data.attributes.details.rust_fps)
+})
+}else{
+location.href="/signin";
+}
+</script>
+</body>
+</html>

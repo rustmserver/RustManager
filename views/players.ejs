@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,viewport-fit=cover">
+<title>プレイヤーリスト - RustManager</title>
+<script src="/javascripts/jquery/jquery.min.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="/stylesheets/vui-main.css">
+<link rel="stylesheet" href="/stylesheets/small.css" media="screen and (max-width:874px)">
+<link rel="stylesheet" href="/stylesheets/medium.css" media="screen and (min-width:875px) and (max-width:1349px)">
+<link rel="stylesheet" href="/stylesheets/wide.css" media="screen and (min-width:1350px)">
+<script src="https://kit.fontawesome.com/c0755961a2.js" crossorigin="anonymous"></script>
+<script src="/sweetalert2/sweetalert2.min.js"></script>
+<link rel="stylesheet" href="/sweetalert2/sweetalert2.min.css">
+</head>
+<body>
+<%- include("./commons/header",{path:"players",title:'プレイヤーリスト'}) %>
+<%- include("./commons/sidebar",{path:"players"}) %>
+<div class="vui-main">
+<div class="vui-searvers">
+<div class="server" style="width:100%;background-color:#fff;padding:20px;margin:0px;box-sizing:border-box;">
+<p style="line-height:2em;padding:0px;margin:0px;">
+<b>プレイヤーリスト</b><br/>
+</p>
+<div class="vui-divider"></div>
+<table class="vui-players-table" id="players">
+<thead>
+<th>Steam Name</th>
+<th>Steam64-ID</th>
+<th>Health</th>
+<th>Playertime</th>
+<th>Ping</th>
+<th>Options</th>
+</thead>
+<tbody>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<%- include('./commons/footer') %>
+<script src="/javascripts/webrcon.js"></script>
+<script src="/store/store.legacy.min.js"></script>
+<script>
+if(store.get("server") !== undefined && store.get("server").ip !== "" && store.get("server").port !== "" && store.get("server").passwd !== ""){
+var WebRcon = dcodeIO.WebRcon;
+var rcon = new WebRcon(store.get("server").ip, store.get("server").port)
+rcon.on('connect', function() {
+rcon.run('playerlist',10)
+//kick
+$('body').on('click', '.vui-button.kick' , function() {
+    Swal.fire({
+            title: 'プレイヤーKICK',
+            text: "プレイヤーをKICKしますか？",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'KICKする'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                rcon.run(`kick ${$(this).data('steamid')}`)
+                $("#command").val("");
+                Swal.fire(
+                'Success!',
+                'プレイヤーをKICKしました。',
+                'success'
+                )
+            }
+        })
+})
+//ban
+$('body').on('click', '.vui-button.ban' , function() {
+    Swal.fire({
+            title: 'プレイヤーBAN',
+            text: "プレイヤーをBANしますか？",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'BANする'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                rcon.run(`banid ${$(this).data('steamid')}`)
+                $("#command").val("");
+                Swal.fire(
+                'Success!',
+                'プレイヤーをBANしました。',
+                'success'
+                )
+            }
+        })
+})
+})
+rcon.on('disconnect', function() {
+})
+rcon.on('message', function(msg) {
+if(msg.message !== "" && msg.identity == 10){
+var data = JSON.parse(msg.message.replace(/\r?\n/g, ''))
+data.forEach((player)=>{
+$("#players tbody").append(`<tr><td>${player.DisplayName}</td><td>${player.SteamID}</td><td><span class="vui-player-health"><span class="health" style="width:${player.Health}%;"></span></td><td>${toHms(player.ConnectedSeconds)}</td><td>${player.Ping}</td><td><button class="vui-button kick warning" data-steamid="${player.SteamID}"><i class="material-icons" style="margin-right:0px;">warning</i></button> <button class="vui-button ban danger" data-steamid="${player.SteamID}"><i class="material-icons" style="margin-right:0px;">gavel</i></button></td></tr>`)
+})
+}
+})
+rcon.on('error', function(err) {
+})
+rcon.connect(store.get("server").passwd)
+function toHms(t) {
+var hms = "";
+var h = t / 3600 | 0;
+var m = t % 3600 / 60 | 0;
+var s = t % 60;
+if (h != 0) {
+hms = h + ":" + padZero(m) + ":" + padZero(s);
+} else if (m != 0) {
+hms = "00:" + padZero(m) + ":" + padZero(s);
+} else {
+hms = "00:00:" + padZero(s);
+}
+return hms;
+function padZero(v) {
+if (v < 10) {
+return "0" + v;
+} else {
+return v;
+}
+}
+}
+}else{
+location.href = "/signin"
+}
+</script>
+</body>
+</html>

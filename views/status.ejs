@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,viewport-fit=cover">
+<title>サーバー状態 - RustManager</title>
+<script src="/javascripts/jquery/jquery.min.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="/stylesheets/vui-main.css">
+<link rel="stylesheet" href="/stylesheets/small.css" media="screen and (max-width:874px)">
+<link rel="stylesheet" href="/stylesheets/medium.css" media="screen and (min-width:875px) and (max-width:1349px)">
+<link rel="stylesheet" href="/stylesheets/wide.css" media="screen and (min-width:1350px)">
+<link rel="stylesheet" href="/stylesheets/style.scss">
+</head>
+<body>
+<%- include("./commons/header",{path:"status",title:'サーバー状態'}) %>
+<%- include("./commons/sidebar",{path:"status"}) %>
+<div class="vui-main">
+<div class="vui-searvers">
+<div class="server" style="width:100%;background-color:#fff;padding:20px;margin:0px;box-sizing:border-box;">
+<div class="vui-grid">
+<div class="four-column">
+<h2 style="text-align:center;color:#9c9c9c;">プレイヤー</h2>
+<div id="gauge" style="height:200px;"></div>
+</div>
+<div class="four-column">
+<h2 style="text-align:center;color:#9c9c9c;">接続中</h2>
+<div id="gauge5" style="height:200px;"></div>
+</div>
+<div class="four-column">
+<h2 style="text-align:center;color:#9c9c9c;">待機中</h2>
+<div id="gauge6" style="height:200px;"></div>
+</div>
+</div>
+<div class="vui-grid">
+<div class="four-column">
+<h2 style="text-align:center;color:#9c9c9c;"">メモリー</h2>
+<div id="gauge2" style="height:200px;"></div>
+</div>
+<div class="four-column">
+<h2 style="text-align:center;color:#9c9c9c;"">フレームレート</h2>
+<div id="gauge3" style="height:200px;"></div>
+</div>
+<div class="four-column">
+<h2 style="text-align:center;color:#9c9c9c;"">エンティティ数</h2>
+<div id="gauge4" style="height:200px;"></div>
+</div>
+</div>
+<div class="vui-divider"></div>
+<div class="vui-grid">
+<div class="one-column">
+<canvas id="canvas" style="width:100%;height:300px"></canvas>
+</div>
+</div>
+<div class="vui-divider"></div>
+<div class="vui-grid">
+<div class="one-column">
+<canvas id="canvas2" style="width:100%;height:300px"></canvas>
+</div>
+</div>
+</div>
+</div>
+</div>
+<%- include('./commons/footer') %>
+<script src="/javascripts/webrcon.js"></script>
+<script src="/javascripts/canvasjs.min.js"></script>
+<script src="/store/store.legacy.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.3.0/raphael.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/morris.js/0.5.1/morris.min.js"></script>
+<script src="/javascripts/justgage.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+var ctx = document.getElementById("canvas").getContext('2d');
+var NetorkInChart = new Chart(ctx, {
+type: 'line',
+data: {
+datasets: [{
+label: 'Network In',
+data: [],
+borderColor: 'rgba(60, 190, 20, 1)',
+backgroundColor: "rgba(0,0,0,0)",
+backgroundColor: "rgba(60, 190, 20,0.2)",
+fill:true
+}]
+},
+options: {
+animation: false,
+scales: {
+yAxes:[{
+gridLines: {
+drawBorder: false
+}
+}],
+xAxes: [{
+stacked: false,
+gridLines: {
+display: false
+},
+scaleLabel: {
+display: false,
+},
+ticks:{
+display:false,
+stepSize:1,
+}
+}],
+}
+}
+});
+//NetworkOutChart
+var ctx2 = document.getElementById("canvas2").getContext('2d');
+var NetorkOutChart = new Chart(ctx2, {
+type: 'line',
+data: {
+datasets: [{
+label: 'Network Out',
+data: [],
+borderColor: 'rgba(60, 190, 20, 1)',
+backgroundColor: "rgba(0,0,0,0)",
+backgroundColor: "rgba(60, 190, 20,0.2)",
+fill:true
+}]
+},
+options: {
+animation: false,
+scales: {
+yAxes:[{
+gridLines: {
+drawBorder: false
+}
+}],
+xAxes: [{
+stacked: false,
+gridLines: {
+display: false
+},
+scaleLabel: {
+display: false,
+},
+ticks:{
+display:false,
+stepSize:1,
+}
+}],
+}
+}
+});
+//Players
+var gauge = new JustGage({
+id: "gauge",
+min:0,
+max:1,
+value:0,
+label:'Players',
+gaugeColor:'#edebeb',
+levelColors:["#a9d70b"],
+minLabelMinFontSize:15,
+maxLabelMinFontSize:15,
+labelMinFontSize:15
+});
+var gauge2 = new JustGage({
+id: "gauge2",
+min:0,
+max:32000,
+value:0,
+label:'MB',
+gaugeColor:'#edebeb',
+levelColors:["#a9d70b"],
+minLabelMinFontSize:15,
+maxLabelMinFontSize:15,
+labelMinFontSize:15
+});
+var gauge3 = new JustGage({
+id: "gauge3", // required
+min:0,
+max:350,
+value:0,
+label:'FPS',
+gaugeColor:'#edebeb',
+customSectors: {
+percents: true, // lo and hi values are in %
+ranges: [{
+color : "#ff0000",
+lo : 0,
+hi :25.7
+},
+{
+color : "#f9c802",
+lo : 25.7,
+hi : 42.9
+},
+{
+color:"#a9d70b",
+lo:42.9,
+hi:100
+}
+]
+},
+minLabelMinFontSize:15,
+maxLabelMinFontSize:15,
+labelMinFontSize:15
+});
+var gauge4 = new JustGage({
+id: "gauge4", // required
+min:0,
+max:260000,
+value:0,
+label:'',
+gaugeColor:'#edebeb',
+levelColors:["#a9d70b"],
+minLabelMinFontSize:15,
+maxLabelMinFontSize:15,
+labelMinFontSize:15
+});
+var gauge5 = new JustGage({
+id: "gauge5", // required
+min:0,
+max:500,
+value:0,
+label:'Joining',
+gaugeColor:'#edebeb',
+levelColors:["#a9d70b"],
+minLabelMinFontSize:15,
+maxLabelMinFontSize:15,
+labelMinFontSize:15
+});
+var gauge6 = new JustGage({
+id: "gauge6", // required
+min:0,
+max:500,
+value:0,
+label:'Queued',
+gaugeColor:'#edebeb',
+levelColors:["#a9d70b"],
+minLabelMinFontSize:15,
+maxLabelMinFontSize:15,
+labelMinFontSize:15
+});
+
+if(store.get("server") !== undefined && store.get("server").ip !== "" && store.get("server").port !== "" && store.get("server").passwd !== ""){
+var WebRcon = dcodeIO.WebRcon;
+var rcon = new WebRcon(store.get("server").ip, store.get("server").port)
+rcon.on('connect', function() {
+$("#server_status").text("接続中")
+
+//serverinfo
+const serverinfo = () => {
+rcon.run('serverinfo',10);
+}
+setInterval(serverinfo, 1000);
+$(".vui-description-save").click(()=>{
+rcon.run("server.description "+$("#server_description").val());
+})
+})
+rcon.on('disconnect', function() {
+$("#server_status").text("切断")
+})
+rcon.on('message', function(msg) {
+if(msg.message != ""){
+if(msg.identity == 10){
+gauge2.refresh(JSON.parse(msg.message).Memory);
+gauge3.refresh(JSON.parse(msg.message).Framerate);
+gauge.refresh(JSON.parse(msg.message).Players,JSON.parse(msg.message).MaxPlayers);
+gauge4.refresh(JSON.parse(msg.message).EntityCount);
+gauge5.refresh(JSON.parse(msg.message).Joining);
+gauge6.refresh(JSON.parse(msg.message).Queued);
+var jikan= new Date();
+var hour = jikan.getHours();
+var minute = jikan.getMinutes();
+var second = jikan.getSeconds();
+var label = hour+':'+minute+':'+second;
+
+var Indata = JSON.parse(msg.message).NetworkIn;
+if(NetorkInChart.data.labels.length > 20){
+NetorkInChart.data.labels.shift();
+}
+NetorkInChart.data.labels.push(label);
+NetorkInChart.data.datasets.forEach((dataset) => {
+if(dataset.data.length > 20){
+dataset.data.shift();
+}
+dataset.data.push(Indata);
+});
+NetorkInChart.update();
+
+var Outdata = JSON.parse(msg.message).NetworkOut;
+if(NetorkOutChart.data.labels.length > 20){
+NetorkOutChart.data.labels.shift();
+}
+NetorkOutChart.data.labels.push(label);
+NetorkOutChart.data.datasets.forEach((dataset) => {
+if(dataset.data.length > 20){
+dataset.data.shift();
+}
+dataset.data.push(Outdata);
+});
+NetorkOutChart.update();
+
+}
+}
+})
+rcon.on('error', function(err) {
+location.href = "/signin"
+})
+// Connect by providing the server's rcon.password:
+rcon.connect(store.get("server").passwd)
+
+var api = "https://api.battlemetrics.com/servers/16347278";
+$.getJSON(api,function(data){
+$("#server_ip").text(data.data.attributes.ip)
+$("#server_port").text(data.data.attributes.port)
+})
+}else{
+location.href = "/signin"
+}
+</script>
+
+</body>
+</html>

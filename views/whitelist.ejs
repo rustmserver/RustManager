@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,viewport-fit=cover">
+<title>ホワイトリスト - RustManager</title>
+<script src="/javascripts/jquery/jquery.min.js"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet" href="/stylesheets/vui-main.css">
+<link rel="stylesheet" href="/stylesheets/small.css" media="screen and (max-width:874px)">
+<link rel="stylesheet" href="/stylesheets/medium.css" media="screen and (min-width:875px) and (max-width:1349px)">
+<link rel="stylesheet" href="/stylesheets/wide.css" media="screen and (min-width:1350px)">
+<script src="https://kit.fontawesome.com/c0755961a2.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<%- include("./commons/header",{path:"whitelist",title:'ホワイトリスト'}) %>
+<%- include("./commons/sidebar",{path:"whitelist"}) %>
+<div class="vui-main">
+<div class="vui-searvers">
+<div class="server" style="width:100%;background-color:#fff;padding:20px;margin:0px;box-sizing:border-box;">
+<div class="vui-grid">
+<div class="four-column" style="display:flex;height:100px;align-items:center;justify-content:center;">
+<div class="vui-input-group" style="width:80%;">
+<input type="text" class="vui-input fluid" id="add_steamid" placeholder="ホワイトリストに登録するSteamID">
+</div>
+</div>
+<div class="four-column" style="display:flex;height:100px;align-items:center;justify-content:center;">
+<a href="#" id="dllnk" download="whitelist_steamids.json" class="vui-button"><i class="material-icons">download</i>登録リストのダウンロード</a>
+</div>
+<div class="four-column" style="display:flex;height:100px;align-items:center;justify-content:center;"">
+<input type="file" id="getfile" style="display:none;">
+<a href="#" onclick="$('#getfile').click()" class="vui-button"><i class="material-icons">upload</i>登録リストのアップロード</a>
+<p id="preview"></p>
+</div>
+</div>
+<div class="vui-divider"></div>
+<table class="vui-players-table" id="players">
+<thead>
+<th>Steam Name</th>
+<th>Steam64-ID</th>
+<th>Options</th>
+</thead>
+<tbody>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<%- include('./commons/footer') %>
+<script src="/javascripts/webrcon.js"></script>
+<script src="/store/store.legacy.min.js"></script>
+<script>
+var whitelist_steam = [];
+document.getElementById('dllnk').addEventListener('click', (event) => {
+const json = JSON.stringify(whitelist_steam, null, '');
+const blob = new Blob([json], { type: 'application/json' }); 
+event.currentTarget.href = window.URL.createObjectURL(blob);
+});
+jQuery (function ()
+{
+var file = jQuery('#getfile')[0]
+change_monitor (file)
+})
+if(store.get("server") !== undefined && store.get("server").ip !== "" && store.get("server").port !== "" && store.get("server").passwd !== ""){
+var WebRcon = dcodeIO.WebRcon;
+var rcon = new WebRcon(store.get("server").ip, store.get("server").port)
+rcon.on('connect', function() {
+rcon.run('oxide.show perm whitelist.allow',10);
+})
+rcon.on('disconnect', function() {
+$("#server_status").text("切断")
+})
+rcon.on('message', function(msg) {
+if(msg.message != ""){
+if(msg.identity == 10){
+var foo = msg.message;
+var bar = foo.match(/([0-9]+)\((.*?)\)/g);
+bar.forEach((whitelist)=>{
+var steamid = whitelist.match(/([0-9]+)/)[0];
+var steamname = whitelist.replace(steamid+"(","").replace(")","");
+$("#players").append(`<tr><td>${steamname}</td><td>${steamid}</td><td><button class="vui-button warning" id="whitelist_remove" data-steamid="${steamid}"><i class="material-icons">warning</i>登録を削除する</button></td></tr>`)
+whitelist_steam.push(steamid);
+})
+}
+}
+})
+$('#add_steamid').keypress(function(e){
+if(e.which == 13) {
+var __steamid = $(this).val();
+rcon.run(`o.grant user ${__steamid} whitelist.allow`,0)
+$(this).val("");
+}
+})
+$( document ).on( "click", "#whitelist_remove", function (){
+var _steamid = $(this).data("steamid");
+rcon.run(`o.revoke user ${_steamid} whitelist.allow`,20);
+location.reload();
+});
+rcon.on('error', function(err) {
+console.log('ERROR:', err)
+})
+// Connect by providing the server's rcon.password:
+rcon.connect(store.get("server").passwd)
+}else{
+location.href="/signin";
+}
+function change_monitor (file)
+{
+file.onchange = function ()
+{
+const fileList = file.files
+var reader = new FileReader()
+reader.readAsText(fileList[0])
+reader.onload = function ()
+{
+var whitelistjson = JSON.parse(reader.result);
+whitelistjson.forEach(function(whitelist){
+rcon.run(`o.grant user ${whitelist} whitelist.allow`,10);
+})
+}
+}
+}
+</script>
+</body>
+</html>
